@@ -147,7 +147,7 @@ class repository_mediatime extends repository {
     public function get_link($source) {
         global $OUTPUT;
 
-        $resource = $this->get_resource($reference);
+        $resource = $this->get_resource($source);
         return $resource->video_url($OUTPUT);
     }
 
