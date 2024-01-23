@@ -29,6 +29,7 @@ require_once($CFG->dirroot . '/lib/resourcelib.php');
 
 use tool_mediatime\output\media_resource;
 use tool_mediatime\plugininfo\mediatimesrc;
+use tool_mediatime\media_manager;
 
 /**
  * repository_mediatime class is used to share Media Time resources
@@ -78,7 +79,6 @@ class repository_mediatime extends repository {
         return [
             'manage' => $manageurl->out(),
             'nologin' => true,
-            'nosearch' => true,
             'list' => $this->get_mediatime_resources(),
         ];
     }
@@ -86,22 +86,17 @@ class repository_mediatime extends repository {
     /**
      * Only return resouces usable in context
      *
+     * @param string $searchtext optional search query
      * @return array list of mediatime files
      */
-    private function get_mediatime_resources(): array {
+    private function get_mediatime_resources($searchtext = ''): array {
         global $USER, $DB, $OUTPUT;
 
-        $result = [];
-        if (!$sources = mediatimesrc::get_enabled_plugins()) {
-            return $result;
+        if (!$rs = media_manager::search([
+            'query' => $searchtext,
+        ])) {
+            return [];
         }
-        list($sql, $params) = $DB->get_in_or_equal($sources);
-        $rs = $DB->get_recordset_select(
-            'tool_mediatime',
-            "source $sql",
-            $params,
-            'timecreated DESC'
-        );
         foreach ($rs as $record) {
             $record->content = json_decode($record->content);
             $resource = new media_resource($record);
@@ -120,8 +115,8 @@ class repository_mediatime extends repository {
                 'author' => fullname(core_user::get_user($record->usermodified)),
             ];
         }
-        return $result;
         $rs->close();
+        return $result;
     }
 
     /**
@@ -385,5 +380,20 @@ class repository_mediatime extends repository {
         $filename = end($path);
 
         send_file($file, $filename, $lifetime , $filter, false, $forcedownload, '', $dontdie);
+    }
+
+    /**
+     * Search files in repository
+     * When doing global search, $searchtext will be used as
+     * keyword.
+     *
+     * @param string $searchtext search key word
+     * @param int $page page
+     * @return mixed
+     */
+    public function search($searchtext, $page = 0) {
+        $list = [];
+        $list['list'] = $this->get_mediatime_resources($searchtext);
+        return $list;
     }
 }
