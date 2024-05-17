@@ -98,14 +98,17 @@ class repository_mediatime extends repository {
             return [];
         }
         foreach ($rs as $record) {
-            $record->content = json_decode($record->content);
             $resource = new media_resource($record);
             $url = new moodle_url('/admin/tool/mediatime/index.php', ['id' => $record->id]);
             $imageurl = $resource->image_url($OUTPUT);
             $videourl = $resource->video_url($OUTPUT);
+            $content = json_decode($record->content);
+            if (!$ext = resourcelib_get_extension($videourl)) {
+                continue;
+            }
             $result[] = [
-                'title' => $record->content->title . '.' . resourcelib_get_extension($videourl),
-                'shorttitle' => $record->content->title,
+                'title' => $content->title . '.' . $ext,
+                'shorttitle' => $content->title . '.' .$ext,
                 'thumbnail' => $imageurl,
                 'realicon' => $imageurl,
                 'datemodified' => (int)$record->timecreated,
@@ -129,7 +132,6 @@ class repository_mediatime extends repository {
         global $DB;
 
         $record = $DB->get_record('tool_mediatime', ['id' => $source]);
-        $record->content = json_decode($record->content);
         return new media_resource($record);
     }
 
